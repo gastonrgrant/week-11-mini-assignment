@@ -1,0 +1,19 @@
+{
+  "model": "logistic_regression",
+  "features": [
+    "home_barthag",
+    "away_barthag",
+    "barthag_gap"
+  ],
+  "C": 1.0,
+  "fit_rows": 8445,
+  "holdout_rows": 1491,
+  "holdout": {
+    "accuracy": 0.6311,
+    "f1": 0.7335,
+    "roc_auc": 0.643,
+    "n": 1491
+  },
+  "majority_class_accuracy": 0.6076,
+  "majority_label": 1
+}

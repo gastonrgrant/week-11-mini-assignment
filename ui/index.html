@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home-win agent loop</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10151c;
+      --panel: #1a2330;
+      --ink: #e7eef8;
+      --muted: #93a4b8;
+      --line: #2c3b4e;
+      --idle: #243246;
+      --active: #e2a320;
+      --done: #2f7d4a;
+      --bad: #a33b3b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", Palatino, Georgia, serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header, main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 28px 0 8px; display: flex; justify-content: space-between; gap: 16px; align-items: end; }
+    h1 { font-size: 32px; font-weight: 600; margin: 0; letter-spacing: -0.03em; }
+    p.lede { margin: 6px 0 0; color: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 14px; }
+    button {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: var(--active);
+      color: #1a1203;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    .layout { display: grid; grid-template-columns: 1.4fr 0.8fr; gap: 16px; padding: 16px 0 28px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+    svg { width: 100%; height: auto; }
+    .node-box { fill: var(--idle); stroke: #48617d; stroke-width: 1.5; }
+    .node-box.active { fill: #4a3a12; stroke: var(--active); }
+    .node-box.done { fill: #163524; stroke: #3e9d62; }
+    .node-title { fill: white; font-size: 13px; font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 700; }
+    .node-sub { fill: var(--muted); font-size: 11px; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .edge { stroke: #68809a; stroke-width: 1.6; fill: none; }
+    .edge.taken { stroke: var(--active); stroke-width: 2.4; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .card { background: #121a24; border-radius: 12px; padding: 10px; }
+    .card span { display: block; color: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .card strong { font-size: 28px; }
+    h2 { margin: 0 0 10px; font-size: 16px; font-family: ui-sans-serif, system-ui, sans-serif; }
+    table { width: 100%; border-collapse: collapse; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; }
+    th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; }
+    #log { margin: 12px 0 0; padding-left: 18px; color: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; }
+    #log li { margin: 4px 0; }
+    #status { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; color: var(--muted); min-height: 1.2em; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Home-win agent loop</h1>
+      <p class="lede">Prior-season Barttorvik ratings only. The critic either adds features, regularizes, or accepts.</p>
+    </div>
+    <button id="run">Run loop</button>
+  </header>
+  <main>
+    <p id="status">Waiting for a run.</p>
+    <div class="layout">
+      <section class="panel">
+        <h2>Agent graph</h2>
+        <svg viewBox="0 0 780 360" role="img" aria-label="Agent graph">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#68809a"></path>
+            </marker>
+          </defs>
+          <path id="edge-steward-feature_planner" class="edge" d="M156 62 H196" marker-end="url(#arrow)"></path>
+          <path id="edge-feature_planner-trainer" class="edge" d="M356 62 H396" marker-end="url(#arrow)"></path>
+          <path id="edge-trainer-scorer" class="edge" d="M546 62 H586" marker-end="url(#arrow)"></path>
+          <path id="edge-scorer-critic" class="edge" d="M659 96 V150" marker-end="url(#arrow)"></path>
+          <path id="edge-critic-reporter" class="edge" d="M586 182 H500 V268" marker-end="url(#arrow)"></path>
+          <path id="edge-critic-feature_planner" class="edge" d="M659 214 V330 H274 V96" marker-end="url(#arrow)"></path>
+          <path id="edge-critic-trainer" class="edge" d="M586 170 C520 170 500 130 469 96" marker-end="url(#arrow)"></path>
+          <text class="node-sub" x="400" y="348">weak separation</text>
+          <text class="node-sub" x="500" y="128">overfit</text>
+          <g class="node" data-node="steward"><rect class="node-box" x="16" y="30" width="140" height="64" rx="12"></rect><text class="node-title" x="86" y="56" text-anchor="middle">Steward</text><text class="node-sub" x="86" y="74" text-anchor="middle">check the table</text></g>
+          <g class="node" data-node="feature_planner"><rect class="node-box" x="196" y="30" width="160" height="64" rx="12"></rect><text class="node-title" x="276" y="56" text-anchor="middle">Feature planner</text><text class="node-sub" x="276" y="74" text-anchor="middle">pick a bundle</text></g>
+          <g class="node" data-node="trainer"><rect class="node-box" x="396" y="30" width="150" height="64" rx="12"></rect><text class="node-title" x="471" y="56" text-anchor="middle">Trainer</text><text class="node-sub" x="471" y="74" text-anchor="middle">logistic regression</text></g>
+          <g class="node" data-node="scorer"><rect class="node-box" x="586" y="30" width="150" height="64" rx="12"></rect><text class="node-title" x="661" y="56" text-anchor="middle">Scorer</text><text class="node-sub" x="661" y="74" text-anchor="middle">validation slice</text></g>
+          <g class="node" data-node="critic"><rect class="node-box" x="586" y="150" width="150" height="64" rx="12"></rect><text class="node-title" x="661" y="176" text-anchor="middle">Critic</text><text class="node-sub" x="661" y="194" text-anchor="middle">accept or retry</text></g>
+          <g class="node" data-node="reporter"><rect class="node-box" x="340" y="268" width="160" height="64" rx="12"></rect><text class="node-title" x="420" y="294" text-anchor="middle">Reporter</text><text class="node-sub" x="420" y="312" text-anchor="middle">sealed holdout</text></g>
+        </svg>
+        <ul id="log"></ul>
+      </section>
+      <section class="panel">
+        <h2>Holdout evaluation</h2>
+        <div class="cards">
+          <div class="card"><span>Accuracy</span><strong id="accuracy">—</strong></div>
+          <div class="card"><span>F1</span><strong id="f1">—</strong></div>
+          <div class="card"><span>ROC-AUC</span><strong id="auc">—</strong></div>
+        </div>
+        <h2 style="margin-top:18px">Attempts</h2>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Features</th><th>C</th><th>Val AUC</th><th>Next</th></tr>
+          </thead>
+          <tbody id="attempts"></tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+  <script>
+    const done = new Set();
+    const button = document.querySelector("#run");
+    const status = document.querySelector("#status");
+    const log = document.querySelector("#log");
+    const attempts = document.querySelector("#attempts");
+
+    function mark(node, kind) {
+      const shape = document.querySelector(`[data-node="${node}"] .node-box`);
+      if (!shape) return;
+      shape.classList.remove("active", "done");
+      if (kind) shape.classList.add(kind);
+    }
+
+    function lightEdge(from, to) {
+      const edge = document.querySelector(`#edge-${from}-${to}`);
+      if (edge) edge.classList.add("taken");
+    }
+
+    button.addEventListener("click", () => {
+      button.disabled = true;
+      status.textContent = "Running.";
+      log.innerHTML = "";
+      attempts.innerHTML = "";
+      done.clear();
+      document.querySelectorAll(".node-box").forEach((node) => node.classList.remove("active", "done"));
+      document.querySelectorAll(".edge").forEach((edge) => edge.classList.remove("taken"));
+      let previous = null;
+      const source = new EventSource("/api/run");
+      source.onmessage = (message) => {
+        const payload = JSON.parse(message.data);
+        if (payload.event === "done") {
+          status.textContent = "Finished.";
+          button.disabled = false;
+          source.close();
+          return;
+        }
+        if (payload.event === "error") {
+          status.textContent = payload.message;
+          button.disabled = false;
+          source.close();
+          return;
+        }
+        const node = payload.node;
+        if (previous && previous !== node) {
+          mark(previous, "done");
+          done.add(previous);
+          lightEdge(previous, node);
+        }
+        mark(node, "active");
+        previous = node;
+        const note = payload.patch && payload.patch.note;
+        if (note) {
+          const item = document.createElement("li");
+          item.textContent = note;
+          log.appendChild(item);
+        }
+        const history = payload.patch && payload.patch.history;
+        if (history && history.length) {
+          const row = history[history.length - 1];
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${row.attempt}</td><td>${row.feature_set}</td><td>${row.C}</td><td>${row.val.roc_auc.toFixed(3)}</td><td>${row.route}</td>`;
+          attempts.appendChild(tr);
+        }
+        const holdout = payload.patch && payload.patch.holdout_metrics;
+        if (holdout) {
+          document.querySelector("#accuracy").textContent = holdout.accuracy.toFixed(3);
+          document.querySelector("#f1").textContent = holdout.f1.toFixed(3);
+          document.querySelector("#auc").textContent = holdout.roc_auc.toFixed(3);
+          mark(node, "done");
+        }
+      };
+      source.onerror = () => {
+        status.textContent = "The event stream closed before the run finished.";
+        button.disabled = false;
+        source.close();
+      };
+    });
+  </script>
+</body>
+</html>

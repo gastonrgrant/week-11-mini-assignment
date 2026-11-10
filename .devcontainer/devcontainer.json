@@ -1,0 +1,12 @@
+{
+  "name": "Week 11 college basketball pipeline",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "agent",
+  "workspaceFolder": "/repo",
+  "forwardPorts": [8000, 8088],
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  }
+}

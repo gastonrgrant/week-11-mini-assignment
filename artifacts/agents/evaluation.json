@@ -1,0 +1,87 @@
+{
+  "question": "Did the home team win?",
+  "target": "home_win",
+  "accept_auc": 0.7,
+  "stop_reason": "features_exhausted",
+  "best": {
+    "feature_set": "full",
+    "C": 1.0,
+    "val_roc_auc": 0.6713,
+    "attempt": 3
+  },
+  "holdout": {
+    "accuracy": 0.6398,
+    "f1": 0.7346,
+    "roc_auc": 0.6497,
+    "n": 1491
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "feature_set": "tempo",
+      "C": 1.0,
+      "train": {
+        "accuracy": 0.672,
+        "f1": 0.8039,
+        "roc_auc": 0.5185,
+        "n": 6955
+      },
+      "val": {
+        "accuracy": 0.5738,
+        "f1": 0.7292,
+        "roc_auc": 0.4947,
+        "n": 1490
+      },
+      "route": "feature_planner",
+      "reason": "weak_separation"
+    },
+    {
+      "attempt": 2,
+      "feature_set": "barthag",
+      "C": 1.0,
+      "train": {
+        "accuracy": 0.7015,
+        "f1": 0.8016,
+        "roc_auc": 0.7227,
+        "n": 6955
+      },
+      "val": {
+        "accuracy": 0.6121,
+        "f1": 0.7189,
+        "roc_auc": 0.6646,
+        "n": 1490
+      },
+      "route": "feature_planner",
+      "reason": "weak_separation"
+    },
+    {
+      "attempt": 3,
+      "feature_set": "full",
+      "C": 1.0,
+      "train": {
+        "accuracy": 0.7014,
+        "f1": 0.8003,
+        "roc_auc": 0.7256,
+        "n": 6955
+      },
+      "val": {
+        "accuracy": 0.6282,
+        "f1": 0.726,
+        "roc_auc": 0.6713,
+        "n": 1490
+      },
+      "route": "reporter",
+      "reason": "features_exhausted"
+    }
+  ],
+  "profile": {
+    "rows": 9936,
+    "date_min": "2023-11-06",
+    "date_max": "2025-03-26",
+    "home_win_rate": 0.6476,
+    "seasons": [
+      2024,
+      2025
+    ]
+  }
+}

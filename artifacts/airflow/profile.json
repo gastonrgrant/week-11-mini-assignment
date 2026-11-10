@@ -1,0 +1,24 @@
+{
+  "rows": 9936,
+  "seasons": [
+    2024,
+    2025
+  ],
+  "date_min": "2023-11-06",
+  "date_max": "2025-03-26",
+  "home_win_rate": 0.6476,
+  "teams": 362,
+  "null_cells": 0,
+  "features_available": [
+    "home_barthag",
+    "away_barthag",
+    "barthag_gap",
+    "home_adjoe",
+    "away_adjoe",
+    "home_adjde",
+    "away_adjde",
+    "home_adjt",
+    "away_adjt"
+  ],
+  "target": "home_win"
+}
