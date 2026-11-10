@@ -4,19 +4,13 @@ Men's college basketball pipeline. Airflow joins two Barttorvik tables and fits 
 
 The shape matches the class demo: parallel checks, a merge, a profile, a baseline, a published table, then a looping agent graph with a sealed holdout. The question, the tables, and the retry rule are different. The class loop researched credit-card fraud and had one revise path. This critic can send a weak model back to the feature planner, or an overfit model straight back to the trainer.
 
-## Words used below
+## Basketball terms
 
-- **Barttorvik** is a public college-basketball statistics site. The pipeline uses two of its tables: who played and who won, and how good each team was at the end of a season.
-- **Team strength (Barthag)** is Barttorvik's single rating for a team. It is the chance that team would beat an average Division I team on a neutral court, from 0 to 1. Houston at 0.98 was excellent. A team at 0.20 was not.
-- **Strength gap** is the home team's rating minus the opponent's. Positive means the home team was the better team last season. The chart below is home win rate by that gap.
+- **Barttorvik** is a public college-basketball statistics site. One table is who played and who won. The other is how good each team was at the end of a season.
+- **Team strength (Barthag)** is that site's single rating for a team: the chance it would beat an average college team on a neutral court, from 0 to 1. Houston at 0.98 was excellent. A team at 0.20 was not.
+- **Strength gap** is the home team's rating minus the opponent's. Positive means the home team was better last season. The chart is home win rate by that gap.
 - **Pace (tempo)** is how fast a team plays, in possessions per 40 minutes. It does not say who is better.
 - **Adjusted offense and adjusted defense** are points scored, or allowed, per 100 possessions, after accounting for the opponent. Higher offense is better. Lower defense is better, because it means fewer points allowed.
-- **Accuracy** is the share of games the model called right.
-- **F1** balances "caught the home wins" against "did not call everything a home win." Home teams win more often than they lose, so accuracy alone looks kinder than it is.
-- **ROC-AUC** is the main score. It asks whether the model ranks likely wins above likely losses. 0.50 is a coin flip. 1.00 is a perfect ranking.
-- **Validation games** are a middle slice of the schedule, used only to decide whether to try again.
-- **Holdout games** are the last 15% of games by date. They are scored once, after the choices are finished. The model was not allowed to peek at them while choosing a setup.
-- **Logistic regression** is a simple yes/no model. It turns the rating numbers into a probability that the home team won.
 
 ## Question
 
