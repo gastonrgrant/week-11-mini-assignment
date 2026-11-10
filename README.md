@@ -56,6 +56,18 @@ This run:
 
 Holdout for the full profile: accuracy 0.640, F1 0.735, ROC-AUC 0.650. That is a small step past the fixed Barthag baseline (0.643 AUC) and past always picking the home team (0.608 accuracy). Last season's ratings help, and they are not close to a 0.70 AUC. Same-season form is what this model is missing, and it was left out so the label could not leak.
 
+## Comparison
+
+Three systems score the same holdout, the last 15% of games by date.
+
+The fixed Airflow pipeline always trains Barthag. It has no choices to make. Holdout ROC-AUC 0.643.
+
+The simple agent is the class-style baseline: check the table, pick Barthag, train once, stop. It has no critic. It scores 0.643, the same model as Airflow.
+
+The adaptive critic is the system above. It throws out tempo, then Barthag, then keeps the full prior-season profile. Holdout ROC-AUC 0.650. The extra routing is a small gain. It does not change the conclusion: last season's ratings are a limited signal.
+
+`python -m eval.suite` runs 15 cases. Each one names its input, the expected behavior, the score, and the pass line. Some score a single routing decision, some score the holdout, and some score whether the agents handed work to the right next step. All 15 passed on this table. The page at port 8000 shows the three scores and that pass list under "Three systems, same games."
+
 ## Run it
 
 Docker Desktop has to be running. From this folder:
@@ -73,10 +85,11 @@ docker compose exec airflow-webserver airflow dags unpause cbb_home_win_pipeline
 docker compose exec airflow-webserver airflow dags trigger cbb_home_win_pipeline
 ```
 
-Agent graph: [http://localhost:8000](http://localhost:8000). Press **Run loop** after the DAG has published `data/published/merged_latest.csv`. The same loop from a terminal:
+Agent graph: [http://localhost:8000](http://localhost:8000). Press **Run loop** after the DAG has published `data/published/merged_latest.csv`. The same loop, the simple baseline, and the evaluation suite from a terminal:
 
 ```bash
 docker compose run --rm agent python -m agents.run
+docker compose run --rm agent python -m eval.suite
 ```
 
 `docker compose down` stops the stack. A dev container is defined in `.devcontainer/devcontainer.json` and uses the `agent` service.

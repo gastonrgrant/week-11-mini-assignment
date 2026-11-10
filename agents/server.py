@@ -26,6 +26,17 @@ def health():
     return {"ok": True, "dataset": DATASET.exists()}
 
 
+@app.get("/api/eval")
+def evaluation():
+    report = ROOT / "artifacts" / "eval" / "report.json"
+    if not report.exists():
+        return JSONResponse(
+            {"error": "Run python -m eval.suite inside the agent container."},
+            status_code=404,
+        )
+    return json.loads(report.read_text())
+
+
 @app.get("/api/run")
 def run():
     if not DATASET.exists():

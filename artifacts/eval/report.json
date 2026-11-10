@@ -1,0 +1,162 @@
+{
+  "summary": "The fixed Airflow pipeline trains Barthag once and scores 0.643 ROC-AUC on the holdout. The simple one-pass agent does that same job and scores 0.643. The adaptive critic throws out tempo, then Barthag, then keeps the full prior-season profile and scores 0.650. The extra routing is a small gain. Last season's ratings are a limited signal in all three systems. 15 of 15 evaluation cases passed.",
+  "baselines": {
+    "fixed_airflow": {
+      "accuracy": 0.6311,
+      "f1": 0.7335,
+      "roc_auc": 0.643,
+      "n": 1491
+    },
+    "simple_agent": {
+      "accuracy": 0.6311,
+      "f1": 0.7335,
+      "roc_auc": 0.643,
+      "n": 1491
+    },
+    "adaptive": {
+      "accuracy": 0.6398,
+      "f1": 0.7346,
+      "roc_auc": 0.6497,
+      "n": 1491
+    }
+  },
+  "passed": 15,
+  "total": 15,
+  "cases": [
+    {
+      "id": "fixed_airflow_beats_chance",
+      "input": "Published home games. Fixed pipeline trains Barthag once.",
+      "expected": "Holdout ROC-AUC is above a coin flip.",
+      "scoring": "Holdout ROC-AUC",
+      "threshold": 0.6,
+      "score": 0.643,
+      "passed": true
+    },
+    {
+      "id": "simple_agent_matches_fixed_pipeline",
+      "input": "Same table. One-pass agent also trains Barthag and stops.",
+      "expected": "Its holdout ROC-AUC matches the fixed pipeline within 0.01.",
+      "scoring": "1 if the absolute AUC gap is under 0.01, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "simple_agent_has_no_retry",
+      "input": "One-pass agent on the published table.",
+      "expected": "The only agents are steward, pick, and holdout.",
+      "scoring": "1 if that is the whole trace, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "adaptive_rejects_tempo",
+      "input": "Adaptive loop, first validation score.",
+      "expected": "Tempo is sent back to the feature planner.",
+      "scoring": "1 if attempt 1 is tempo and the route is feature_planner, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "adaptive_tempo_is_weak",
+      "input": "Adaptive loop, first validation ROC-AUC.",
+      "expected": "Tempo does not separate winners. AUC stays under 0.55.",
+      "scoring": "1 if validation ROC-AUC is under 0.55, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "adaptive_barthag_is_a_real_gain",
+      "input": "Adaptive loop, first two validation scores.",
+      "expected": "Adding Barthag lifts validation ROC-AUC by at least 0.10.",
+      "scoring": "Validation AUC of attempt 2 minus attempt 1",
+      "threshold": 0.1,
+      "score": 0.1699,
+      "passed": true
+    },
+    {
+      "id": "adaptive_stops_on_full_profile",
+      "input": "Adaptive loop, third attempt.",
+      "expected": "The full profile is reported instead of trying the same features again.",
+      "scoring": "1 if attempt 3 is full and the route is reporter, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "adaptive_agent_order",
+      "input": "Adaptive loop trace on the published table.",
+      "expected": "Steward, then three plan-train-score-critic cycles, then one reporter.",
+      "scoring": "1 if the node order matches, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "holdout_scored_once",
+      "input": "Adaptive loop trace.",
+      "expected": "The reporter runs once. Earlier attempts stay on the validation slice.",
+      "scoring": "1 if reporter appears once, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "overfit_routes_to_trainer",
+      "input": "Critic sees training AUC 0.80 and validation AUC 0.60 on Barthag.",
+      "expected": "It retries the trainer with stronger regularization.",
+      "scoring": "1 if the route is trainer and C becomes 0.1, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "weak_score_routes_to_planner",
+      "input": "Critic sees validation AUC 0.50 on tempo, attempt 1.",
+      "expected": "It sends the run back to the feature planner.",
+      "scoring": "1 if the route is feature_planner, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "strong_score_stops",
+      "input": "Critic sees validation AUC 0.75, above the 0.70 bar.",
+      "expected": "It accepts and sends the run to the reporter.",
+      "scoring": "1 if the route is reporter, else 0",
+      "threshold": 1.0,
+      "score": 1.0,
+      "passed": true
+    },
+    {
+      "id": "adaptive_holdout_auc",
+      "input": "Published table, adaptive loop, sealed last 15% of games.",
+      "expected": "Holdout ROC-AUC is at least 0.64.",
+      "scoring": "Holdout ROC-AUC",
+      "threshold": 0.64,
+      "score": 0.6497,
+      "passed": true
+    },
+    {
+      "id": "adaptive_holdout_accuracy",
+      "input": "Same holdout. Home teams win about 61% of these late games.",
+      "expected": "Accuracy is at least 0.62, above always picking the home team.",
+      "scoring": "Holdout accuracy",
+      "threshold": 0.62,
+      "score": 0.6398,
+      "passed": true
+    },
+    {
+      "id": "adaptive_matches_or_beats_simple",
+      "input": "Holdout ROC-AUC of the adaptive loop versus the one-pass agent.",
+      "expected": "The extra tries do not make the final model worse.",
+      "scoring": "Adaptive AUC minus simple AUC. Pass at 0, meaning a tie or a gain.",
+      "threshold": 0.0,
+      "score": 0.0067,
+      "passed": true
+    }
+  ]
+}

@@ -41,6 +41,8 @@
     button:disabled { opacity: 0.6; cursor: wait; }
     .layout { display: grid; grid-template-columns: 1.4fr 0.8fr; gap: 16px; padding: 16px 0 28px; }
     .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+    .pass { color: #8dcea8; }
+    .fail { color: #e07a7a; }
     svg { width: 100%; height: auto; }
     .node-box { fill: var(--idle); stroke: #48617d; stroke-width: 1.5; }
     .node-box.active { fill: #4a3a12; stroke: var(--active); }
@@ -116,6 +118,17 @@
         </table>
       </section>
     </div>
+    <section class="panel" style="margin-bottom: 28px">
+      <h2>Three systems, same games</h2>
+      <p id="compare-summary" class="lede">Loading the evaluation suite.</p>
+      <div class="cards" id="compare-cards"></div>
+      <table>
+        <thead>
+          <tr><th>Case</th><th>Score</th><th>Pass line</th><th></th></tr>
+        </thead>
+        <tbody id="compare-cases"></tbody>
+      </table>
+    </section>
   </main>
   <script>
     const done = new Set();
@@ -195,6 +208,30 @@
         source.close();
       };
     });
+
+    fetch("/api/eval")
+      .then((response) => response.json())
+      .then((report) => {
+        const summary = document.querySelector("#compare-summary");
+        if (report.error) {
+          summary.textContent = report.error;
+          return;
+        }
+        summary.textContent = report.summary;
+        const cards = document.querySelector("#compare-cards");
+        const labels = [
+          ["Fixed Airflow", report.baselines.fixed_airflow],
+          ["Simple agent", report.baselines.simple_agent],
+          ["Adaptive critic", report.baselines.adaptive],
+        ];
+        cards.innerHTML = labels.map(([name, metrics]) => (
+          `<div class="card"><span>${name}</span><strong>${metrics.roc_auc.toFixed(3)}</strong></div>`
+        )).join("");
+        const body = document.querySelector("#compare-cases");
+        body.innerHTML = report.cases.map((item) => (
+          `<tr><td>${item.id}</td><td>${item.score}</td><td>${item.threshold}</td><td class="${item.passed ? "pass" : "fail"}">${item.passed ? "pass" : "fail"}</td></tr>`
+        )).join("");
+      });
   </script>
 </body>
 </html>
