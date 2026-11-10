@@ -239,11 +239,11 @@ def evaluate(dataset_path: str = str(DATASET)) -> dict:
     ]
     passed = sum(1 for case in cases if case["passed"])
     summary = (
-        f"The fixed Airflow pipeline trains Barthag once and scores "
+        f"The fixed Airflow pipeline uses last season's team strength and scores "
         f"{fixed['roc_auc']:.3f} ROC-AUC on the holdout. The simple one-pass agent "
         f"does that same job and scores {simple['holdout']['roc_auc']:.3f}. "
-        f"The adaptive critic throws out tempo, then Barthag, then keeps the full "
-        f"prior-season profile and scores {adaptive['holdout']['roc_auc']:.3f}. "
+        f"The adaptive critic throws out pace, then team strength alone, then keeps "
+        f"strength plus offense, defense, and pace, and scores {adaptive['holdout']['roc_auc']:.3f}. "
         f"The extra routing is a small gain. Last season's ratings are a limited signal "
         f"in all three systems. {passed} of {len(cases)} evaluation cases passed."
     )

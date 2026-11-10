@@ -20,7 +20,7 @@ def node_pick(state: LoopState) -> dict:
         "feature_set": "barthag",
         "C": 1.0,
         "attempt": 1,
-        "note": "Simple loop picks prior-season Barthag and does not retry.",
+        "note": "Simple loop uses last season's team strength for both teams and does not retry.",
     }
 
 

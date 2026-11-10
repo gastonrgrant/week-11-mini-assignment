@@ -356,7 +356,7 @@ def plot_win_rate(frame: pd.DataFrame, path: Path) -> Path:
     axis.set_xticks(range(len(grouped)), labels, rotation=30, ha="right")
     axis.set_ylim(0, 1)
     axis.set_ylabel("Home win rate")
-    axis.set_xlabel("Prior-season Barthag gap (home minus away)")
+    axis.set_xlabel("Last season's team strength, home minus away")
     axis.set_title("Home teams win more often when they were better last year")
     axis.axhline(work["home_win"].mean(), color="#c47b00", linestyle="--", linewidth=1.2, label="Overall home win rate")
     axis.legend(frameon=False)

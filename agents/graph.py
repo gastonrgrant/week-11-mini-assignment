@@ -32,6 +32,11 @@ MAX_ATTEMPTS = 4
 OVERFIT_GAP = 0.08
 REPORT_PATH = REPO / "artifacts" / "agents" / "evaluation.json"
 FEATURE_ORDER = ["tempo", "barthag", "full"]
+FEATURE_LABELS = {
+    "tempo": "pace",
+    "barthag": "team strength",
+    "full": "strength, offense, defense, and pace",
+}
 
 
 class LoopState(TypedDict, total=False):
@@ -80,9 +85,9 @@ def node_feature_planner(state: LoopState) -> dict:
     else:
         chosen = FEATURE_ORDER[min(FEATURE_ORDER.index(current) + 1, len(FEATURE_ORDER) - 1)]
     notes = {
-        "tempo": "First pass uses only prior-season tempo. Pace should not decide the winner.",
-        "barthag": "Tempo was weak. Switch to prior-season Barthag for both teams.",
-        "full": "Barthag was not enough. Add prior offense, defense, and tempo.",
+        "tempo": "First pass uses only last season's pace, possessions per game. Pace should not decide the winner.",
+        "barthag": "Pace was weak. Switch to last season's team strength for both teams.",
+        "full": "Team strength was not enough. Add last season's offense, defense, and pace.",
     }
     return {"feature_set": chosen, "C": 1.0, "note": notes[chosen]}
 
@@ -97,7 +102,7 @@ def node_trainer(state: LoopState) -> dict:
         "attempt": attempt,
         "train_metrics": metrics,
         "note": (
-            f"Attempt {attempt}: logistic regression on {state['feature_set']} "
+            f"Attempt {attempt}: logistic regression on {FEATURE_LABELS[state['feature_set']]} "
             f"with C={state['C']}. Training ROC-AUC {metrics['roc_auc']:.3f}."
         ),
     }
@@ -200,7 +205,7 @@ def node_reporter(state: LoopState) -> dict:
         "note": (
             f"Holdout accuracy {metrics['accuracy']:.3f}, "
             f"F1 {metrics['f1']:.3f}, ROC-AUC {metrics['roc_auc']:.3f} "
-            f"using {best['feature_set']}."
+            f"using {FEATURE_LABELS[best['feature_set']]}."
         ),
     }
 

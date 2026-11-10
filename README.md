@@ -4,6 +4,20 @@ Men's college basketball pipeline. Airflow joins two Barttorvik tables and fits 
 
 The shape matches the class demo: parallel checks, a merge, a profile, a baseline, a published table, then a looping agent graph with a sealed holdout. The question, the tables, and the retry rule are different. The class loop researched credit-card fraud and had one revise path. This critic can send a weak model back to the feature planner, or an overfit model straight back to the trainer.
 
+## Words used below
+
+- **Barttorvik** is a public college-basketball statistics site. The pipeline uses two of its tables: who played and who won, and how good each team was at the end of a season.
+- **Team strength (Barthag)** is Barttorvik's single rating for a team. It is the chance that team would beat an average Division I team on a neutral court, from 0 to 1. Houston at 0.98 was excellent. A team at 0.20 was not.
+- **Strength gap** is the home team's rating minus the opponent's. Positive means the home team was the better team last season. The chart below is home win rate by that gap.
+- **Pace (tempo)** is how fast a team plays, in possessions per 40 minutes. It does not say who is better.
+- **Adjusted offense and adjusted defense** are points scored, or allowed, per 100 possessions, after accounting for the opponent. Higher offense is better. Lower defense is better, because it means fewer points allowed.
+- **Accuracy** is the share of games the model called right.
+- **F1** balances "caught the home wins" against "did not call everything a home win." Home teams win more often than they lose, so accuracy alone looks kinder than it is.
+- **ROC-AUC** is the main score. It asks whether the model ranks likely wins above likely losses. 0.50 is a coin flip. 1.00 is a perfect ranking.
+- **Validation games** are a middle slice of the schedule, used only to decide whether to try again.
+- **Holdout games** are the last 15% of games by date. They are scored once, after the choices are finished. The model was not allowed to peek at them while choosing a setup.
+- **Logistic regression** is a simple yes/no model. It turns the rating numbers into a probability that the home team won.
+
 ## Question
 
 Did the home team win? Inputs are last season's ratings only. Same-game points and box-score lines are not features.
@@ -29,42 +43,42 @@ Then, in order: join the two tables, save the result in Postgres, summarize it, 
 
 Airflow runs this every day at 6:00am Eastern. It does not go back and rerun old days. You can also start it immediately with the trigger command below.
 
-The fixed baseline is a logistic regression on prior Barthag for both teams and the gap between them. On the last 15% of games by date (1,491 games):
+The fixed model uses last season's team strength for both teams, and the gap between them. On the holdout, the last 15% of games by date (1,491 games):
 
 | | Accuracy | F1 | ROC-AUC |
 | --- | --- | --- | --- |
 | Always pick home | 0.608 | | |
-| Airflow baseline (Barthag) | 0.631 | 0.734 | 0.643 |
+| Airflow baseline (team strength) | 0.631 | 0.734 | 0.643 |
 
-The chart is `artifacts/airflow/win_rate_by_barthag_gap.png`. Home win rate rises with last year's Barthag gap.
+Home teams win more often when they were the better team last year. The bars are the strength gap, home rating minus away rating.
 
-![Home win rate by prior Barthag gap](artifacts/airflow/win_rate_by_barthag_gap.png)
+![Home win rate by last season's strength gap](artifacts/airflow/win_rate_by_barthag_gap.png)
 
 ## Agent loop
 
 Six steps run in order: check the table, pick features, train, score the validation slice, then a critic decides what happens next. If the score is weak, the critic sends the run back to pick a richer feature set. If the training score is much better than the validation score, it sends the run back to train again with stronger regularization. Otherwise it stops and scores the holdout once.
 
-The accept bar is a validation ROC-AUC of 0.70, with at most 4 attempts. The first bundle is tempo on purpose: pace should not pick the winner. A weak score sends the run back to the planner, which adds Barthag, then the full prior-season profile (offense, defense, tempo). If training AUC runs more than 0.08 ahead of validation, the trainer refits with stronger regularization instead of adding features. The holdout is scored once, after the loop, on a refit that may use the training and validation rows.
+The loop accepts a setup when the validation ROC-AUC reaches 0.70, and it stops after 4 tries even if that never happens. The first try uses pace on purpose, because pace should not decide the winner. A weak score adds team strength. If that is still weak, the next try adds offense, defense, and pace. If the training score runs more than 0.08 ahead of the validation score, the model is retrained more cautiously instead of adding inputs. The holdout is scored once, after the loop stops.
 
 This run:
 
 | Attempt | Features | Validation ROC-AUC | Critic |
 | --- | --- | --- | --- |
-| 1 | tempo | 0.495 | weak separation, add Barthag |
-| 2 | Barthag | 0.665 | still under 0.70, add the full profile |
-| 3 | full profile | 0.671 | no richer prior-season features left |
+| 1 | Pace only | 0.495 | too weak, add team strength |
+| 2 | Team strength | 0.665 | still under 0.70, add offense, defense, and pace |
+| 3 | Strength, offense, defense, and pace | 0.671 | nothing useful left to add |
 
-Holdout for the full profile: accuracy 0.640, F1 0.735, ROC-AUC 0.650. That is a small step past the fixed Barthag baseline (0.643 AUC) and past always picking the home team (0.608 accuracy). Last season's ratings help, and they are not close to a 0.70 AUC. Same-season form is what this model is missing, and it was left out so the label could not leak.
+Holdout for that last setup: accuracy 0.640, F1 0.735, ROC-AUC 0.650. That is a small step past the fixed team-strength model (0.643) and past always picking the home team (0.608 accuracy). Last season's ratings help, and they are not close to a 0.70 ROC-AUC. How the teams are playing this season was left out on purpose, so the model cannot see the game it is trying to predict.
 
 ## Comparison
 
 Three systems score the same holdout, the last 15% of games by date.
 
-The fixed Airflow pipeline always trains Barthag. It has no choices to make. Holdout ROC-AUC 0.643.
+The fixed Airflow pipeline always uses team strength. It has no choices to make. Holdout ROC-AUC 0.643.
 
-The simple agent is the class-style baseline: check the table, pick Barthag, train once, stop. It has no critic. It scores 0.643, the same model as Airflow.
+The simple agent is the class-style baseline: check the table, pick team strength, train once, stop. It has no critic. It scores 0.643, the same model as Airflow.
 
-The adaptive critic is the system above. It throws out tempo, then Barthag, then keeps the full prior-season profile. Holdout ROC-AUC 0.650. The extra routing is a small gain. It does not change the conclusion: last season's ratings are a limited signal.
+The adaptive critic is the system above. It throws out pace, then team strength alone, then keeps strength plus offense, defense, and pace. Holdout ROC-AUC 0.650. The extra routing is a small gain. It does not change the conclusion: last season's ratings are a limited signal.
 
 `python -m eval.suite` runs 15 cases. Each one names its input, the expected behavior, the score, and the pass line. Some score a single routing decision, some score the holdout, and some score whether the agents handed work to the right next step. All 15 passed on this table. The page at port 8000 shows the three scores and that pass list under "Three systems, same games."
 

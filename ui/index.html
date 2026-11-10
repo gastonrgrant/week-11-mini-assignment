@@ -69,7 +69,7 @@
   <header>
     <div>
       <h1>Home-win agent loop</h1>
-      <p class="lede">Prior-season Barttorvik ratings only. The critic either adds features, regularizes, or accepts.</p>
+      <p class="lede">Last season's ratings only. Team strength is the chance a team would beat an average team. Pace is possessions per game. The critic adds information, retrains more cautiously, or accepts.</p>
     </div>
     <button id="run">Run loop</button>
   </header>
@@ -104,6 +104,7 @@
       </section>
       <section class="panel">
         <h2>Holdout evaluation</h2>
+        <p class="lede">Accuracy is the share called right. F1 discounts always picking the home team. ROC-AUC ranks likely wins above likely losses. 0.50 is a coin flip.</p>
         <div class="cards">
           <div class="card"><span>Accuracy</span><strong id="accuracy">—</strong></div>
           <div class="card"><span>F1</span><strong id="f1">—</strong></div>

@@ -1,5 +1,5 @@
 {
-  "summary": "The fixed Airflow pipeline trains Barthag once and scores 0.643 ROC-AUC on the holdout. The simple one-pass agent does that same job and scores 0.643. The adaptive critic throws out tempo, then Barthag, then keeps the full prior-season profile and scores 0.650. The extra routing is a small gain. Last season's ratings are a limited signal in all three systems. 15 of 15 evaluation cases passed.",
+  "summary": "The fixed Airflow pipeline uses last season's team strength and scores 0.643 ROC-AUC on the holdout. The simple one-pass agent does that same job and scores 0.643. The adaptive critic throws out pace, then team strength alone, then keeps strength plus offense, defense, and pace, and scores 0.650. The extra routing is a small gain. Last season's ratings are a limited signal in all three systems. 15 of 15 evaluation cases passed.",
   "baselines": {
     "fixed_airflow": {
       "accuracy": 0.6311,
