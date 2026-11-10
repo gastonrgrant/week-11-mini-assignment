@@ -23,15 +23,11 @@ The published table has 9,936 home games, 362 teams, from 2023-11-06 through 202
 
 ## Pipeline
 
-`game_logs` and `team_ratings` are TaskGroups. Their fetch and clean tasks have no dependency on each other, so Airflow runs them in parallel. `merge_games_and_ratings` waits for both.
+Two downloads start at the same time: the game logs, and the team ratings. Each one is cleaned on its own. Nothing else starts until both are clean.
 
-```
-game_logs.fetch -> game_logs.clean ----+
-                                        +-> merge -> load_postgres -> profile -> train_baseline -> publish
-team_ratings.fetch -> team_ratings.clean +
-```
+Then, in order: join the two tables, save the result in Postgres, summarize it, train the simple model, and publish the CSV the agent loop reads.
 
-Schedule: `0 6 * * *` America/New_York. `catchup` is off, so turning the DAG on does not replay old days. A manual trigger runs it immediately.
+Airflow runs this every day at 6:00am Eastern. It does not go back and rerun old days. You can also start it immediately with the trigger command below.
 
 The fixed baseline is a logistic regression on prior Barthag for both teams and the gap between them. On the last 15% of games by date (1,491 games):
 
@@ -46,17 +42,9 @@ The chart is `artifacts/airflow/win_rate_by_barthag_gap.png`. Home win rate rise
 
 ## Agent loop
 
-LangGraph runs six nodes. The router after the critic is ordinary code.
+Six steps run in order: check the table, pick features, train, score the validation slice, then a critic decides what happens next. If the score is weak, the critic sends the run back to pick a richer feature set. If the training score is much better than the validation score, it sends the run back to train again with stronger regularization. Otherwise it stops and scores the holdout once.
 
-```
-steward -> feature_planner -> trainer -> scorer -> critic
-                                  ^          |         |
-                                  |          |         +-> feature_planner   (weak separation)
-                                  +----------+         +-> trainer           (overfit)
-                                             critic -> reporter              (accept, or no richer features left)
-```
-
-The accept bar is validation ROC-AUC of 0.70, with at most 4 attempts. The first bundle is tempo on purpose: pace should not pick the winner. A weak score sends the run back to the planner, which adds Barthag, then the full prior-season profile (offense, defense, tempo). If training AUC runs more than 0.08 ahead of validation, the trainer refits with stronger regularization instead of adding features. The holdout is scored once, after the loop, on a refit that may use the training and validation rows.
+The accept bar is a validation ROC-AUC of 0.70, with at most 4 attempts. The first bundle is tempo on purpose: pace should not pick the winner. A weak score sends the run back to the planner, which adds Barthag, then the full prior-season profile (offense, defense, tempo). If training AUC runs more than 0.08 ahead of validation, the trainer refits with stronger regularization instead of adding features. The holdout is scored once, after the loop, on a refit that may use the training and validation rows.
 
 This run:
 
